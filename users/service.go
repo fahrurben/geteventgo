@@ -34,3 +34,20 @@ func (service *UserService) Register(ctx context.Context, data RegisterValidator
 
 	return service.repo.Create(ctx, &user)
 }
+
+func (service *UserService) Login(ctx context.Context, data LoginValidator) (*UserModel, error) {
+
+	userModel, err := service.repo.GetByEmail(ctx, data.Email)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = userModel.checkPassword(data.Password)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &userModel, err
+}

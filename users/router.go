@@ -1,10 +1,13 @@
 package users
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/fahrurben/geteventgo/common"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
@@ -19,6 +22,7 @@ func UserEndpoints(router *gin.RouterGroup) {
 	h := Handler{Repo: &repo, Service: &service}
 
 	router.POST("register", h.UserRegister)
+	router.POST("login", h.UserLogin)
 }
 
 func (h *Handler) UserRegister(c *gin.Context) {
@@ -37,4 +41,29 @@ func (h *Handler) UserRegister(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{})
+}
+
+func (h *Handler) UserLogin(c *gin.Context) {
+	loginValidator := LoginValidator{}
+
+	if err := c.ShouldBindJSON(&loginValidator); err != nil {
+		c.JSON(http.StatusBadRequest, common.NewError("validation", err))
+		return
+	}
+
+	userModel, err := h.Service.Login(c, loginValidator)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			c.JSON(http.StatusBadRequest, common.NewError("authentication", errors.New("Wrong username or password")))
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, common.NewError("database", err))
+		return
+	}
+
+	userSerializer := UserSerializer{Model: userModel}
+
+	c.JSON(http.StatusOK, userSerializer.Response())
 }
