@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/fahrurben/geteventgo/common"
+	"github.com/fahrurben/geteventgo/events"
 	"github.com/fahrurben/geteventgo/users"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -11,6 +12,8 @@ import (
 
 func Migrate(db *gorm.DB) {
 	db.AutoMigrate(&users.UserModel{})
+	db.AutoMigrate(&events.Event{})
+	db.AutoMigrate(&events.Pricing{})
 }
 
 func main() {
@@ -35,6 +38,7 @@ func main() {
 
 	v1 := router.Group("/api")
 	users.UserEndpoints(v1)
+	events.EventEndpoints(v1)
 
 	router.Run()
 }
